@@ -1,11 +1,12 @@
 import pandas as pd
+from time import sleep
 from datetime import datetime
 from top_anime_scrapper import TopAnimeScrapper
 from anime_scrapper import AnimeScrapper
 
 
 # Scrapping the Top N Anime subdomain URLs
-n_anime = 1000
+n_anime = 500
 top_an_sc = TopAnimeScrapper(n_anime)
 subdomains_list = top_an_sc.get_top_subdomains_urls()
 
@@ -16,6 +17,7 @@ for subdomain in subdomains_list:
     anime_obj = an_sc.get_anime_data()
     anime_info = anime_obj.get_anime_info_list()
     anime_list.append(anime_info)
+    sleep(1)  # Sleep 1 second to not overflow the web
 
 # Creating a pandas df to save the data in CSV
 df_col_names = ['ranking_position', 'title', 'score', 'n_episodes', 'start_aired_date', 'end_aired_date',

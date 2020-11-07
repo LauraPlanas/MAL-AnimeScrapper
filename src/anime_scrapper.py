@@ -19,8 +19,8 @@ class AnimeScrapper:
         self.synopsis = None
         self.score = 0.0
         self.n_episodes = 0
-        self.aired_date_start = 0
-        self.aired_date_end = 0
+        self.aired_date_start = None
+        self.aired_date_end = None
         self.status = None
         self.genres_list = []
         self.timestamp = 0
@@ -45,7 +45,7 @@ class AnimeScrapper:
     def _scrape_n_episodes(self, bs):
         episodes_span = bs.find("span", string="Episodes:")
         episodes_parent_text = str(episodes_span.parent.get_text())
-        self.n_episodes = int(re.sub(r'\D', "", episodes_parent_text))
+        self.n_episodes = str(re.sub(r'\D', "", episodes_parent_text))
 
     def _scrape_aired_dates(self, bs):
         aired_span = bs.find("span", string="Aired:")
@@ -53,22 +53,23 @@ class AnimeScrapper:
         split_dates = airing_dates_regex.search(aired_parent_text)
 
         # Getting groups from regex search
-        month_start = split_dates.group(1)
-        day_start = int(split_dates.group(2))
-        year_start = int(split_dates.group(3))
+        if split_dates is not None:
+            month_start = split_dates.group(1)
+            day_start = int(split_dates.group(2))
+            year_start = int(split_dates.group(3))
 
-        month_end = split_dates.group(4)
+            month_end = split_dates.group(4)
 
-        month_start = strptime(month_start, '%b').tm_mon
-        self.aired_date_start = datetime.date(year=year_start, month=month_start, day=day_start)
+            month_start = strptime(month_start, '%b').tm_mon
+            self.aired_date_start = datetime.date(year=year_start, month=month_start, day=day_start)
 
-        if month_end is None:  # if Anime is still Airing
-            self.aired_date_end = None
-        else:
-            month_end = strptime(month_end, '%b').tm_mon
-            day_end = int(split_dates.group(5))
-            year_end = int(split_dates.group(6))
-            self.aired_date_end = datetime.date(year=year_end, month=month_end, day=day_end)
+            if month_end is None:  # if Anime is still Airing
+                self.aired_date_end = None
+            else:
+                month_end = strptime(month_end, '%b').tm_mon
+                day_end = int(split_dates.group(5))
+                year_end = int(split_dates.group(6))
+                self.aired_date_end = datetime.date(year=year_end, month=month_end, day=day_end)
 
     def _scrape_status(self, bs):
         status_span = bs.find("span", string="Status:")
@@ -114,3 +115,7 @@ class AnimeScrapper:
             self.genres_list,
             self.timestamp
         )
+
+if __name__ == "__main__":
+    ass = AnimeScrapper("/8740/One_Piece_Film__Strong_World_Episode_0")
+    ass.get_anime_data().pretty_print()

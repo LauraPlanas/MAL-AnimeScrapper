@@ -3,8 +3,9 @@ from time import strptime
 import datetime
 import requests
 from bs4 import BeautifulSoup
+from entities.Anime import Anime
 
-airing_dates_regex = re.compile(r'\s*(.{3})\s*(\d+),\s*(\d+)\s*to\s*(?:\?|(.{3})\s*(\d+),\s*(\d+))\s*')
+airing_dates_regex = re.compile(r'\s*(.{3})\s*(\d+),\s*(\d+)\s*(?:to\s*(?:\?|(.{3})\s*(\d+),\s*(\d+)))?\s*')
 
 
 class AnimeScrapper:
@@ -13,6 +14,7 @@ class AnimeScrapper:
         self.domain = "https://myanimelist.net/anime"
         self.subdomain = subdomain
 
+        self.ranking_position = 0
         self.title = None
         self.synopsis = None
         self.score = 0.0
@@ -21,14 +23,21 @@ class AnimeScrapper:
         self.aired_date_end = 0
         self.status = None
         self.genres_list = []
+        self.timestamp = 0
 
         self._scrape_anime()
+
+    def _scrape_ranking_position(self, bs):
+        ranking_span = bs.find("span", class_="numbers ranked")
+        ranking_child_text = str(ranking_span.findChild().getText())
+        self.ranking_position = int(re.sub(r'\D', "", ranking_child_text))
 
     def _scrape_title(self, bs):
         self.title = str(bs.find("h1", class_="title-name").get_text())
 
     def _scrape_synopsis(self, bs):
-        self.synopsis = str(bs.find("p", itemprop="description").get_text())
+        raw_syn = str(bs.find("p", itemprop="description").get_text())
+        self.synopsis = re.sub(r'[\n\r]+', " ", raw_syn)
 
     def _scrape_score(self, bs):
         self.score = float(bs.find("div", class_="score-label").get_text())
@@ -49,16 +58,16 @@ class AnimeScrapper:
         year_start = int(split_dates.group(3))
 
         month_end = split_dates.group(4)
-        day_end = int(split_dates.group(5))
-        year_end = int(split_dates.group(6))
 
         month_start = strptime(month_start, '%b').tm_mon
         self.aired_date_start = datetime.date(year=year_start, month=month_start, day=day_start)
 
-        if month_end is None: # if Anime is still Airing
+        if month_end is None:  # if Anime is still Airing
             self.aired_date_end = None
         else:
             month_end = strptime(month_end, '%b').tm_mon
+            day_end = int(split_dates.group(5))
+            year_end = int(split_dates.group(6))
             self.aired_date_end = datetime.date(year=year_end, month=month_end, day=day_end)
 
     def _scrape_status(self, bs):
@@ -73,13 +82,14 @@ class AnimeScrapper:
             self.genres_list.append(genre_text)
 
     def _scrape_anime(self):
-        print("Scraping anime from " + self.domain + self.subdomain)
+        print("\nScraping anime from " + self.domain + self.subdomain)
 
         # Get page content in HTML
         page = requests.get(self.domain + self.subdomain)
         b_soup = BeautifulSoup(page.content, 'html.parser')
 
         # Get basic anime information
+        self._scrape_ranking_position(b_soup)
         self._scrape_title(b_soup)
         self._scrape_synopsis(b_soup)
         self._scrape_score(b_soup)
@@ -88,19 +98,19 @@ class AnimeScrapper:
         self._scrape_status(b_soup)
         self._scrape_genres_list(b_soup)
 
+        # Add timestamp
+        self.timestamp = datetime.datetime.now()
+
     def get_anime_data(self):
-        # TODO: Return information inside Anime object
-        return self.title, self.synopsis, self.score, self.n_episodes, self.aired_date_start, self.aired_date_end, self.status, self.genres_list
-
-
-if __name__ == "__main__":
-
-    an_s = AnimeScrapper("/5114/Fullmetal_Alchemist__Brotherhood")
-    print(an_s.get_anime_data())
-
-    #bs = an_s._scrape_anime()
-
-
-
-
-
+        return Anime(
+            self.ranking_position,
+            self.title,
+            self.synopsis,
+            self.score,
+            self.n_episodes,
+            self.aired_date_start,
+            self.aired_date_end,
+            self.status,
+            self.genres_list,
+            self.timestamp
+        )

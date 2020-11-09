@@ -14,4 +14,6 @@ This project has been developed individually by Laura Planas Simón.
 * <code>scr/main.py</code>: file that executes the program. It creates the necessary objects and stores the information in the CSV file. When executed, a CSV file with the top 500 anime information on that day will be stored in the <code>csv</code> folder.
 
 ## Dataset DOI
+10.5281/zenodo.4256843
+
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4256843.svg)](https://doi.org/10.5281/zenodo.4256843)
